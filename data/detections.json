@@ -1,0 +1,62 @@
+[
+  {
+    "id": "seed-hazard-1",
+    "type": "pothole",
+    "confidence": 0.95,
+    "severity": "high",
+    "description": "Large deep pothole on MG Road near Trinity Circle inner lane.",
+    "latitude": 12.9716,
+    "longitude": 77.5946,
+    "locationName": "MG Road & Trinity Circle, Bengaluru, Karnataka",
+    "timestamp": "2026-09-25T11:45:00.000Z",
+    "box2d": [480, 320, 720, 680]
+  },
+  {
+    "id": "seed-hazard-2",
+    "type": "road_crack",
+    "confidence": 0.89,
+    "severity": "medium",
+    "description": "Severe transversal thermal crack across Outer Ring Road flyover approach.",
+    "latitude": 12.9352,
+    "longitude": 77.6245,
+    "locationName": "Outer Ring Road, Koramangala, Bengaluru, Karnataka",
+    "timestamp": "2026-09-25T10:30:00.000Z",
+    "box2d": [550, 200, 850, 790]
+  },
+  {
+    "id": "seed-hazard-3",
+    "type": "broken_sign",
+    "confidence": 0.92,
+    "severity": "medium",
+    "description": "Bent speed limit (40 km/h) signboard obscured by roadside tree branch.",
+    "latitude": 12.3051,
+    "longitude": 76.6551,
+    "locationName": "Mysuru-Bengaluru Expressway Highway Entry, Mysuru, Karnataka",
+    "timestamp": "2026-09-25T09:15:00.000Z",
+    "box2d": [200, 710, 480, 890]
+  },
+  {
+    "id": "seed-hazard-4",
+    "type": "pothole",
+    "confidence": 0.88,
+    "severity": "high",
+    "description": "Monsoon eroded deep road crater on NH 48 corridor.",
+    "latitude": 15.3647,
+    "longitude": 75.1240,
+    "locationName": "NH 48 Bypass, Hubballi-Dharwad, Karnataka",
+    "timestamp": "2026-09-25T07:20:00.000Z",
+    "box2d": [620, 410, 780, 600]
+  },
+  {
+    "id": "seed-hazard-5",
+    "type": "road_crack",
+    "confidence": 0.87,
+    "severity": "low",
+    "description": "Asphalt surface alligator cracking on coastal highway junction.",
+    "latitude": 12.9141,
+    "longitude": 74.8560,
+    "locationName": "Kottara Chowki, Mangaluru, Karnataka",
+    "timestamp": "2026-09-25T05:00:00.000Z",
+    "box2d": [500, 300, 700, 600]
+  }
+]

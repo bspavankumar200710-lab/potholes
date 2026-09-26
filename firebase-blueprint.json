@@ -1,0 +1,56 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile with Google account info and app preferences",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "maxLength": 128 },
+        "email": { "type": "string", "format": "email", "maxLength": 256 },
+        "displayName": { "type": "string", "maxLength": 128 },
+        "photoURL": { "type": "string", "maxLength": 1024 },
+        "preferredMode": { "type": "string", "enum": ["both", "potholes", "speed"], "maxLength": 32 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email"]
+    },
+    "RoadHazard": {
+      "title": "RoadHazard",
+      "description": "Road hazard detection record including potholes, vehicle/scooter speeds, GPS location, and photos",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "type": { "type": "string", "enum": ["pothole", "road_crack", "broken_sign", "vehicle_speed"], "maxLength": 64 },
+        "confidence": { "type": "number" },
+        "severity": { "type": "string", "enum": ["low", "medium", "high"], "maxLength": 32 },
+        "description": { "type": "string", "maxLength": 1000 },
+        "latitude": { "type": "number" },
+        "longitude": { "type": "number" },
+        "locationName": { "type": "string", "maxLength": 256 },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "imageUrl": { "type": "string", "maxLength": 500000 },
+        "vehicleType": { "type": "string", "enum": ["car", "scooter", "motorcycle", "auto", "truck", "bus"], "maxLength": 64 },
+        "estimatedSpeedKmh": { "type": "number" },
+        "speedLimitKmh": { "type": "number" },
+        "isOverSpeed": { "type": "boolean" },
+        "box2d": {
+          "type": "array",
+          "items": { "type": "number" }
+        }
+      },
+      "required": ["id", "type", "confidence", "severity", "description", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Stores user profile and account preferences"
+    },
+    "/detections/{detectionId}": {
+      "schema": "RoadHazard",
+      "description": "Stores road hazards and vehicle speed detections with geotags and photos"
+    }
+  }
+}
