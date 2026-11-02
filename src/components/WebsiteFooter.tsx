@@ -1,8 +1,8 @@
 import React from 'react';
-import { ShieldCheck, MapPin, Camera, Sparkles, Heart } from 'lucide-react';
+import { ShieldCheck, Camera, Sparkles, Heart } from 'lucide-react';
 
 interface WebsiteFooterProps {
-  onNavigate: (tab: 'dashboard' | 'monitor' | 'map' | 'history') => void;
+  onNavigate: (tab: 'dashboard' | 'monitor' | 'map' | 'history' | 'download') => void;
   onOpenDemo: () => void;
 }
 
@@ -75,6 +75,14 @@ export const WebsiteFooter: React.FC<WebsiteFooterProps> = ({ onNavigate, onOpen
                   className="hover:text-white transition-colors flex items-center gap-1.5"
                 >
                   Detection Logs & Photos
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => onNavigate('download')}
+                  className="hover:text-white transition-colors flex items-center gap-1.5 font-semibold text-emerald-400"
+                >
+                  📱 Download App (Phone QR Code)
                 </button>
               </li>
             </ul>

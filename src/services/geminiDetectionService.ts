@@ -1,16 +1,17 @@
 import { IAIDetectionService } from './aiDetectionService';
 import { DetectionResult, DetectionMode } from '../types/detection';
 import { analyzeFrameLocally } from './localImageAnalyzer';
+import { agentLearningService } from './agentLearningService';
 
 export class GeminiDetectionService implements IAIDetectionService {
   public readonly id = 'gemini-vision';
-  public readonly name = 'Google Gemini 3.8 Flash Vision';
-  public readonly version = 'v1.0';
+  public readonly name = 'Google Gemini 3.8 Flash Vision (Self-Improving Agent)';
+  public readonly version = 'v2.4';
   public readonly isReady = true;
 
   /**
-   * Sends the road camera snapshot to the server-side Gemini API endpoint.
-   * Mode can be 'both', 'potholes' (only road hazards), or 'speed' (only moving cars/scooters speed estimation).
+   * Sends the road camera snapshot to the server-side Gemini API endpoint,
+   * injecting learned feedback and mistake corrections dynamically.
    */
   public async detectRoadProblems(
     imageBase64: string,
@@ -18,6 +19,7 @@ export class GeminiDetectionService implements IAIDetectionService {
     mode: DetectionMode = 'both'
   ): Promise<DetectionResult> {
     const startTime = performance.now();
+    const learnedDirectives = agentLearningService.getLearnedPromptDirectives();
 
     try {
       const response = await fetch('/api/detect', {
@@ -30,6 +32,7 @@ export class GeminiDetectionService implements IAIDetectionService {
           imageBase64,
           mimeType,
           mode,
+          learnedDirectives,
         }),
       });
 

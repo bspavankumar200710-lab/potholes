@@ -26,55 +26,61 @@ export const UserAuthButton: React.FC = () => {
     );
   }
 
-  if (user) {
+  const activeProfile = userProfile || (user ? {
+    displayName: user.displayName,
+    email: user.email,
+    photoURL: user.photoURL,
+  } : null);
+
+  if (activeProfile) {
     return (
       <div className="relative">
         <button
           onClick={() => setShowDropdown((prev) => !prev)}
           className="flex items-center gap-1.5 p-1 pr-2.5 rounded-full bg-white hover:bg-slate-50 border border-slate-200/90 shadow-sm transition-all"
         >
-          {user.photoURL ? (
+          {activeProfile.photoURL ? (
             <img
-              src={user.photoURL}
-              alt={user.displayName || 'Driver'}
+              src={activeProfile.photoURL}
+              alt={activeProfile.displayName || 'Driver'}
               className="w-6 h-6 rounded-full object-cover border border-slate-300"
             />
           ) : (
             <div className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold">
-              {(user.displayName || user.email || 'D')[0].toUpperCase()}
+              {(activeProfile.displayName || activeProfile.email || 'D')[0].toUpperCase()}
             </div>
           )}
           <span className="text-[11px] font-bold text-slate-800 max-w-[80px] truncate">
-            {user.displayName?.split(' ')[0] || 'Driver'}
+            {activeProfile.displayName?.split(' ')[0] || 'Driver'}
           </span>
         </button>
 
         {showDropdown && (
           <div className="absolute right-0 mt-1.5 w-60 bg-white rounded-2xl shadow-xl border border-slate-200/90 p-3 z-50 animate-in fade-in zoom-in-95 duration-150">
             <div className="flex items-center gap-2.5 pb-2.5 border-b border-slate-100">
-              {user.photoURL ? (
+              {activeProfile.photoURL ? (
                 <img
-                  src={user.photoURL}
-                  alt={user.displayName || 'Driver'}
+                  src={activeProfile.photoURL}
+                  alt={activeProfile.displayName || 'Driver'}
                   className="w-9 h-9 rounded-full object-cover border border-slate-300"
                 />
               ) : (
                 <div className="w-9 h-9 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-bold">
-                  {(user.displayName || 'D')[0].toUpperCase()}
+                  {(activeProfile.displayName || 'D')[0].toUpperCase()}
                 </div>
               )}
               <div className="min-w-0">
                 <div className="font-bold text-xs text-slate-900 truncate">
-                  {user.displayName || 'RoadGuard Driver'}
+                  {activeProfile.displayName || 'RoadGuard Driver'}
                 </div>
-                <div className="text-[10px] text-slate-500 truncate">{user.email}</div>
+                <div className="text-[10px] text-slate-500 truncate">{activeProfile.email}</div>
               </div>
             </div>
 
             <div className="py-2 text-[11px] text-slate-600 space-y-1">
               <div className="flex items-center gap-1.5 text-emerald-600 font-semibold">
                 <ShieldCheck className="w-3.5 h-3.5" />
-                <span>Google Account Synced</span>
+                <span>Driver Profile Active</span>
               </div>
               <p className="text-[10px] text-slate-400">
                 Potholes, vehicle speeds, and road photos are automatically synced to Cloud Firestore database.

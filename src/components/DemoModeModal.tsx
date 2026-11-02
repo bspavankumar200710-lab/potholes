@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { DEMO_SAMPLES, DemoSample } from '../utils/demoData';
 import { geminiDetectionService } from '../services/geminiDetectionService';
 import { locationService } from '../services/locationService';
 import { detectionService } from '../services/detectionService';
 import { audioAlertService } from '../services/audioAlertService';
 import { DetectionResult, DetectedObject, DetectionMode } from '../types/detection';
+import { modalOverlayVariants, modalDialogVariants, buttonPressProps } from '../utils/motion';
 import {
   Zap,
   Upload,
@@ -49,8 +51,6 @@ export const DemoModeModal: React.FC<DemoModeModalProps> = ({
       setSavedSuccessId(null);
     }
   }, [selectedSample, isCustomUpload]);
-
-  if (!isOpen) return null;
 
   const handleSelectSample = (sample: DemoSample) => {
     setIsCustomUpload(false);
@@ -140,9 +140,26 @@ export const DemoModeModal: React.FC<DemoModeModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-white rounded-3xl max-w-lg w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden border border-slate-200">
-        {/* Header */}
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <motion.div
+            variants={modalOverlayVariants}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            onClick={onClose}
+            className="fixed inset-0 bg-black/75 backdrop-blur-sm"
+          />
+
+          <motion.div
+            variants={modalDialogVariants}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            className="relative z-10 bg-white rounded-3xl max-w-lg w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden border border-slate-200"
+          >
+            {/* Header */}
         <div className="p-4 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="p-1.5 rounded-xl bg-white/20">
@@ -360,7 +377,9 @@ export const DemoModeModal: React.FC<DemoModeModalProps> = ({
             )}
           </button>
         </div>
-      </div>
-    </div>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
   );
 };

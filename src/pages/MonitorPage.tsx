@@ -12,6 +12,7 @@ import { geminiDetectionService } from '../services/geminiDetectionService';
 import { locationService, LocationCoordinates } from '../services/locationService';
 import { detectionService } from '../services/detectionService';
 import { audioAlertService } from '../services/audioAlertService';
+import { agentLearningService, LearnedCorrection } from '../services/agentLearningService';
 import { useAuth } from '../contexts/AuthContext';
 import {
   Camera,
@@ -36,18 +37,28 @@ import {
   Layers,
   Car,
   Maximize2,
+  Brain,
+  ThumbsDown,
+  Sparkles,
+  X,
+  FileText,
 } from 'lucide-react';
+import { driveSessionService, DriveSummary } from '../services/driveSessionService';
 
 interface MonitorPageProps {
   isMonitoring: boolean;
   onToggleMonitoring: (start: boolean) => void;
   onOpenDemo: () => void;
+  onViewSummary?: () => void;
+  lastSummary?: DriveSummary | null;
 }
 
 export const MonitorPage: React.FC<MonitorPageProps> = ({
   isMonitoring,
   onToggleMonitoring,
   onOpenDemo,
+  onViewSummary,
+  lastSummary,
 }) => {
   const { userProfile, updatePreferredMode } = useAuth();
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -78,6 +89,9 @@ export const MonitorPage: React.FC<MonitorPageProps> = ({
   const [detectionCount, setDetectionCount] = useState<number>(() => detectionService.getStats().total);
   const [currentDetections, setCurrentDetections] = useState<DetectedObject[]>([]);
   const [latestSavedRecord, setLatestSavedRecord] = useState<RoadHazardRecord | null>(null);
+  const [trainTarget, setTrainTarget] = useState<RoadHazardRecord | null>(null);
+  const [trainCategory, setTrainCategory] = useState<LearnedCorrection['actualCategory']>('manhole');
+  const [learnedCount, setLearnedCount] = useState<number>(() => agentLearningService.getAll().length);
   const [isAnalyzingFrame, setIsAnalyzingFrame] = useState<boolean>(false);
   const [lastFrameTime, setLastFrameTime] = useState<number | null>(null);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
@@ -108,9 +122,12 @@ export const MonitorPage: React.FC<MonitorPageProps> = ({
       setGpsCoords(coords);
       setGpsStatus(status);
       setGpsError(errorMsg || null);
+      if (coords && isMonitoring) {
+        driveSessionService.recordCoordinate(coords);
+      }
     });
     return unsubscribe;
-  }, []);
+  }, [isMonitoring]);
 
   // Update detection count on changes
   useEffect(() => {
@@ -184,7 +201,7 @@ export const MonitorPage: React.FC<MonitorPageProps> = ({
   const stopCamera = useCallback(() => {
     if (streamRef.current) {
       const videoTrack = streamRef.current.getVideoTracks()[0];
-      if (videoTrack) {
+      if (videoTrack && videoTrack.readyState === 'live') {
         try {
           (videoTrack as any).applyConstraints({ advanced: [{ torch: false }] });
         } catch {}
@@ -258,6 +275,11 @@ export const MonitorPage: React.FC<MonitorPageProps> = ({
         setCurrentDetections(result.objects);
 
         for (const obj of result.objects) {
+          // Suppress if matches learned mistake rule
+          if (agentLearningService.isSuppressed(obj.type, obj.description)) {
+            continue;
+          }
+
           const lat = gpsCoords?.latitude || null;
           const lng = gpsCoords?.longitude || null;
           const locationHint = lat && lng ? `${lat.toFixed(4)}°, ${lng.toFixed(4)}°` : 'Current location';
@@ -293,6 +315,7 @@ export const MonitorPage: React.FC<MonitorPageProps> = ({
           });
 
           setLatestSavedRecord(record);
+          driveSessionService.addHazardToSession(record);
 
           // Toast banner notification
           if (obj.type === 'vehicle_speed') {
@@ -341,7 +364,7 @@ export const MonitorPage: React.FC<MonitorPageProps> = ({
 
     if (streamRef.current) {
       const videoTrack = streamRef.current.getVideoTracks()[0];
-      if (videoTrack) {
+      if (videoTrack && videoTrack.readyState === 'live') {
         try {
           await (videoTrack as any).applyConstraints({
             advanced: [{ torch: nextState }],
@@ -505,11 +528,24 @@ export const MonitorPage: React.FC<MonitorPageProps> = ({
         {/* Real-time Toast Banner for Live Detections */}
         {realtimeNotification && (
           <div className="absolute top-4 inset-x-3 z-40 flex justify-center animate-in slide-in-from-top-3 fade-in duration-200">
-            <div className="p-3 bg-slate-900/95 border-2 border-cyan-400 text-white rounded-2xl shadow-2xl backdrop-blur-md flex items-center gap-2.5 max-w-sm">
-              <span className="p-1.5 bg-blue-600 rounded-lg text-white font-bold">
-                <Database className="w-4 h-4 animate-bounce" />
-              </span>
-              <p className="text-xs font-bold leading-tight">{realtimeNotification}</p>
+            <div className="p-3 bg-slate-900/95 border-2 border-cyan-400 text-white rounded-2xl shadow-2xl backdrop-blur-md flex items-center justify-between gap-2.5 max-w-md w-full">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <span className="p-1.5 bg-blue-600 rounded-lg text-white font-bold shrink-0">
+                  <Database className="w-4 h-4 animate-bounce" />
+                </span>
+                <p className="text-xs font-bold leading-tight truncate">{realtimeNotification}</p>
+              </div>
+
+              {latestSavedRecord && (
+                <button
+                  onClick={() => setTrainTarget(latestSavedRecord)}
+                  className="px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-bold shrink-0 flex items-center gap-1 shadow"
+                  title="Teach Visual Agent about false positive"
+                >
+                  <Brain className="w-3 h-3" />
+                  <span>Not Hazard?</span>
+                </button>
+              )}
             </div>
           </div>
         )}
@@ -584,6 +620,16 @@ export const MonitorPage: React.FC<MonitorPageProps> = ({
                 <Zap className="w-3.5 h-3.5" />
                 Test Road Hazard / Speed Demo
               </button>
+
+              {(lastSummary || driveSessionService.getLastSummary()) && onViewSummary && (
+                <button
+                  onClick={onViewSummary}
+                  className="w-full py-2.5 px-4 rounded-2xl bg-slate-900/90 border border-blue-500/40 hover:bg-blue-950/60 text-blue-300 font-semibold text-xs flex items-center justify-center gap-2 transition-all"
+                >
+                  <FileText className="w-3.5 h-3.5 text-blue-400" />
+                  <span>View Last Post-Drive Summary</span>
+                </button>
+              )}
             </div>
           </div>
         )}
@@ -787,6 +833,93 @@ export const MonitorPage: React.FC<MonitorPageProps> = ({
           </div>
         )}
       </div>
+
+      {/* Quick Visual Agent Self-Improvement / False Positive Modal */}
+      {trainTarget && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-sm w-full overflow-hidden shadow-2xl text-white animate-in fade-in zoom-in duration-150">
+            <div className="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-950/60">
+              <div className="flex items-center gap-2">
+                <Brain className="w-5 h-5 text-indigo-400 animate-pulse" />
+                <div>
+                  <h4 className="font-extrabold text-sm text-white">Teach Visual Agent</h4>
+                  <span className="text-[10px] text-slate-400">Report False Positive in Real-Time</span>
+                </div>
+              </div>
+              <button onClick={() => setTrainTarget(null)} className="p-1 rounded-lg text-slate-400 hover:text-white">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-4 space-y-3 text-xs">
+              <div className="bg-slate-800/80 p-2.5 rounded-xl border border-slate-700 space-y-1">
+                <span className="text-slate-400 font-bold block text-[10px] uppercase">Detected As</span>
+                <div className="font-bold text-amber-300 capitalize">{trainTarget.type.replace('_', ' ')}</div>
+                <p className="text-slate-300 italic text-[11px] truncate">{trainTarget.description}</p>
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-300 block mb-1.5">What is this actually?</label>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {[
+                    { id: 'manhole', label: '🔘 Manhole Lid' },
+                    { id: 'shadow', label: '🌲 Tree Shadow' },
+                    { id: 'water_puddle', label: '💧 Water Puddle' },
+                    { id: 'speed_breaker', label: '🛑 Speed Hump' },
+                    { id: 'paint_marking', label: '🎨 Road Stripe' },
+                    { id: 'normal_road', label: '🛣️ Normal Asphalt' },
+                  ].map((cat) => (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => setTrainCategory(cat.id as any)}
+                      className={`p-2 rounded-xl border text-left font-semibold text-[11px] transition-all ${
+                        trainCategory === cat.id
+                          ? 'bg-indigo-600 border-indigo-400 text-white shadow-md'
+                          : 'bg-slate-800/60 border-slate-700 text-slate-300 hover:bg-slate-700/60'
+                      }`}
+                    >
+                      {cat.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="bg-indigo-950/60 p-2 rounded-lg border border-indigo-800/60 text-[10px] text-indigo-300 flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                <span>Agent will immediately suppress this false positive on future video frames.</span>
+              </div>
+            </div>
+
+            <div className="p-3 border-t border-slate-800 bg-slate-950/60 flex items-center justify-between">
+              <button
+                onClick={() => setTrainTarget(null)}
+                className="py-1.5 px-3 text-slate-400 hover:text-white font-semibold text-xs"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  if (!trainTarget) return;
+                  await agentLearningService.teachMistake(
+                    trainTarget.type,
+                    trainCategory,
+                    `Driver reported false positive for ${trainTarget.type}. Actual: ${trainCategory}.`
+                  );
+                  await detectionService.deleteDetection(trainTarget.id);
+                  setLearnedCount((prev) => prev + 1);
+                  setTrainTarget(null);
+                  showNotification(`🧠 Agent updated! Ignored "${trainCategory.replace('_', ' ')}" in real time.`);
+                }}
+                className="py-2 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-md flex items-center gap-1.5"
+              >
+                <Brain className="w-3.5 h-3.5" />
+                <span>Apply Rule & Train</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

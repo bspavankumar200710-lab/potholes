@@ -43,8 +43,12 @@ service cloud.firestore {
       // Anyone signed in or public safety monitor can read detections for road navigation
       allow read: if true;
       allow create: if isValidRoadHazard(request.resource.data);
-      allow update: if isSignedIn() && isValidRoadHazard(request.resource.data);
-      allow delete: if isSignedIn();
+      allow update: if isValidRoadHazard(request.resource.data);
+      allow delete: if true;
+    }
+
+    match /agentLearnings/{learningId} {
+      allow read, write: if true;
     }
   }
 }

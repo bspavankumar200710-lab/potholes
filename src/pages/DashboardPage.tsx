@@ -1,5 +1,17 @@
-import React from 'react';
-import { RoadHazardRecord, MonitoringStats } from '../types/detection';
+import React, { useState, useEffect } from 'react';
+import { motion } from 'motion/react';
+import { RoadHazardRecord, MonitoringStats, AILearningStats } from '../types/detection';
+import { detectionService } from '../services/detectionService';
+import { DriveSummary } from '../services/driveSessionService';
+import { AnimatedCounter } from '../components/AnimatedCounter';
+import {
+  pageVariants,
+  cardHoverProps,
+  buttonPressProps,
+  staggerContainerVariants,
+  staggerItemVariants,
+  progressBarTransition,
+} from '../utils/motion';
 import {
   AlertTriangle,
   Camera,
@@ -14,6 +26,12 @@ import {
   Gauge,
   Layers,
   Car,
+  Brain,
+  CheckCircle2,
+  Navigation,
+  FileText,
+  ChevronRight,
+  Calendar,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { HazardTrendLineChart } from '../components/HazardTrendLineChart';
@@ -24,9 +42,11 @@ interface DashboardPageProps {
   recentDetections: RoadHazardRecord[];
   isMonitoring: boolean;
   onStartMonitoring: () => void;
-  onNavigateToMap: (detectionId?: string) => void;
   onNavigateToHistory: () => void;
+  onNavigateToSchedule?: () => void;
   onOpenDemo: () => void;
+  lastDriveSummary?: DriveSummary | null;
+  onOpenDriveSummary?: () => void;
 }
 
 export const DashboardPage: React.FC<DashboardPageProps> = ({
@@ -34,11 +54,22 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   recentDetections,
   isMonitoring,
   onStartMonitoring,
-  onNavigateToMap,
   onNavigateToHistory,
+  onNavigateToSchedule,
   onOpenDemo,
+  lastDriveSummary,
+  onOpenDriveSummary,
 }) => {
   const { userProfile, updatePreferredMode } = useAuth();
+  const [aiStats, setAiStats] = useState<AILearningStats>(() => detectionService.getAILearningStats());
+
+  useEffect(() => {
+    const unsub = detectionService.subscribeLearning((newStats) => {
+      setAiStats(newStats);
+    });
+    return unsub;
+  }, []);
+
   const potholePercent = stats.total > 0 ? Math.round((stats.potholes / stats.total) * 100) : 0;
   const speedPercent = stats.total > 0 ? Math.round((stats.speedDetections / stats.total) * 100) : 0;
   const crackPercent = stats.total > 0 ? Math.round((stats.roadCracks / stats.total) * 100) : 0;
@@ -58,174 +89,275 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   const getTypeIcon = (type: string) => {
     switch (type) {
       case 'pothole':
-        return { emoji: '🕳️', label: 'Pothole', color: 'text-rose-600 bg-rose-50' };
+        return { emoji: '🕳️', label: 'Pothole' };
       case 'vehicle_speed':
-        return { emoji: '🏎️', label: 'Vehicle Speed', color: 'text-blue-600 bg-blue-50' };
+        return { emoji: '🏎️', label: 'Vehicle Speed' };
       case 'road_crack':
-        return { emoji: '⚡', label: 'Road Crack', color: 'text-amber-600 bg-amber-50' };
+        return { emoji: '⚡', label: 'Road Crack' };
       case 'broken_sign':
-        return { emoji: '🛑', label: 'Broken Sign', color: 'text-purple-600 bg-purple-50' };
+        return { emoji: '🛑', label: 'Broken Sign' };
       default:
-        return { emoji: '⚠️', label: 'Road Issue', color: 'text-blue-600 bg-blue-50' };
+        return { emoji: '⚠️', label: 'Observation' };
     }
   };
 
   return (
-    <div className="flex-1 overflow-y-auto px-3.5 sm:px-6 lg:px-8 py-3.5 sm:py-5 max-w-7xl mx-auto w-full pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] md:pb-12 space-y-4 sm:space-y-6">
-      {/* Hero Welcome Card */}
-      <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 text-white p-4.5 sm:p-6 lg:p-8 shadow-xl border border-slate-700/80">
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-4 sm:gap-6">
-          <div className="max-w-2xl">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full bg-blue-500/20 border border-blue-400/30 text-blue-300 text-[11px] sm:text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-blue-400 animate-ping"></span>
-                Autonomous Road Safety AI
+    <motion.div
+      variants={pageVariants}
+      initial="initial"
+      animate="animate"
+      exit="exit"
+      className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-7"
+    >
+      {/* Hero Welcome Banner */}
+      <div className="bg-gradient-to-r from-blue-700 via-indigo-700 to-slate-900 rounded-3xl p-5 sm:p-7 text-white shadow-xl relative overflow-hidden">
+        <div className="absolute -right-10 -bottom-10 w-64 h-64 bg-blue-500/20 rounded-full blur-3xl pointer-events-none" />
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5">
+          <div className="space-y-1.5 max-w-xl">
+            <div className="flex items-center gap-2">
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-blue-500/30 border border-blue-400/40 text-blue-200">
+                AI Vision & Radar System
               </span>
-              <span className="text-[11px] sm:text-xs font-mono text-slate-300">
-                {new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
-              </span>
+              <span className="text-xs text-blue-200">• Road Safety Platform</span>
             </div>
-
-            <h2 className="text-xl sm:text-2xl lg:text-3xl font-black mt-2.5 sm:mt-3 tracking-tight">
-              Road Hazard & Speed Monitor
+            <h2 className="text-xl sm:text-3xl font-extrabold tracking-tight">
+              Real-Time Road Hazard & Speed Radar Monitor
             </h2>
-            <p className="text-xs sm:text-sm text-slate-300 mt-1.5 sm:mt-2 leading-relaxed">
-              Real-time computer vision detecting asphalt potholes, road surface fractures, and tracking car/scooter speeds with Google Account sync.
+            <p className="text-xs sm:text-sm text-blue-100/90 leading-relaxed">
+              Detect potholes, asphalt fissures, degraded road signs, and vehicle velocity using smartphone camera & on-device AI.
             </p>
-
-            {/* Target Mode Quick Preference */}
-            <div className="mt-3 sm:mt-4 flex flex-col sm:flex-row sm:items-center gap-2 text-xs text-slate-400 pt-2.5 sm:pt-3 border-t border-slate-800/80">
-              <div className="flex items-center gap-1.5 text-[11px]">
-                <Layers className="w-3.5 h-3.5 text-blue-400" />
-                <span className="font-semibold text-slate-300">Target Focus:</span>
-              </div>
-              <div className="grid grid-cols-3 sm:flex items-center gap-1 bg-slate-950/60 p-1 rounded-xl border border-slate-800 w-full sm:w-auto">
-                <button
-                  onClick={() => updatePreferredMode('both')}
-                  className={`px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-bold transition-all text-center ${
-                    userProfile?.preferredMode === 'both' || !userProfile?.preferredMode
-                      ? 'bg-indigo-600 text-white shadow-sm'
-                      : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  <span className="hidden sm:inline">All (Potholes & Speed)</span>
-                  <span className="sm:hidden">All</span>
-                </button>
-                <button
-                  onClick={() => updatePreferredMode('potholes')}
-                  className={`px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-bold transition-all text-center ${
-                    userProfile?.preferredMode === 'potholes'
-                      ? 'bg-rose-600 text-white shadow-sm'
-                      : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  <span className="hidden sm:inline">🕳️ Potholes Only</span>
-                  <span className="sm:hidden">🕳️ Potholes</span>
-                </button>
-                <button
-                  onClick={() => updatePreferredMode('speed')}
-                  className={`px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-bold transition-all text-center ${
-                    userProfile?.preferredMode === 'speed'
-                      ? 'bg-sky-600 text-white shadow-sm'
-                      : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  <span className="hidden sm:inline">🏎️ Car/Scooter Speed</span>
-                  <span className="sm:hidden">🏎️ Speeds</span>
-                </button>
-              </div>
-            </div>
           </div>
 
-          {/* Quick Action Buttons */}
-          <div className="flex flex-row md:flex-col gap-2.5 sm:gap-3 w-full md:w-auto md:min-w-[200px] shrink-0">
-            <button
+          <div className="flex flex-wrap items-center gap-2.5">
+            <motion.button
+              {...buttonPressProps}
               onClick={onStartMonitoring}
-              className="flex-1 py-3 px-4 sm:px-5 rounded-xl sm:rounded-2xl bg-blue-600 hover:bg-blue-500 active:scale-98 font-bold text-white shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2 text-xs sm:text-sm transition-all"
+              className="py-3 px-5 rounded-2xl bg-white text-blue-700 hover:bg-blue-50 font-bold text-xs sm:text-sm shadow-lg shadow-black/10 flex items-center gap-2 transition-transform"
             >
-              <Camera className="w-4 h-4 shrink-0" />
-              <span>{isMonitoring ? 'Open Camera' : 'Start Monitoring'}</span>
-            </button>
-            <button
-              onClick={() => onNavigateToMap()}
-              className="flex-1 py-3 px-4 sm:px-5 rounded-xl sm:rounded-2xl bg-slate-800/90 hover:bg-slate-700/90 active:scale-98 font-semibold text-white border border-slate-700/80 flex items-center justify-center gap-2 text-xs sm:text-sm transition-all"
+              <Camera className="w-4 h-4 text-blue-600" />
+              <span>{isMonitoring ? 'Open Live Camera' : 'Start Camera Monitor'}</span>
+            </motion.button>
+            <motion.button
+              {...buttonPressProps}
+              onClick={onOpenDemo}
+              className="py-3 px-4 rounded-2xl bg-blue-800/80 hover:bg-blue-800 text-white font-semibold text-xs sm:text-sm border border-blue-500/40 transition-colors"
             >
-              <MapPin className="w-4 h-4 text-cyan-400 shrink-0" />
-              <span>View Map</span>
-            </button>
+              <Zap className="w-4 h-4 text-amber-300 inline mr-1.5" />
+              Test Lab
+            </motion.button>
+            {onNavigateToSchedule && (
+              <motion.button
+                {...buttonPressProps}
+                onClick={onNavigateToSchedule}
+                className="py-3 px-4 rounded-2xl bg-indigo-800/80 hover:bg-indigo-800 text-white font-semibold text-xs sm:text-sm border border-indigo-500/40 transition-colors flex items-center gap-1.5"
+              >
+                <Calendar className="w-4 h-4 text-indigo-300" />
+                <span>Work Orders & Patrols</span>
+              </motion.button>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Main Metric Cards Grid (2 cols on mobile, 4 on desktop) */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
-        {/* Total Issues */}
-        <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-sm border border-slate-200/90 hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between text-slate-400 mb-2">
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Total Records</span>
-            <div className="p-2 rounded-xl bg-slate-100 text-slate-600">
-              <Activity className="w-4 h-4" />
+      {/* Latest Completed Drive Summary Card with Spring Hover */}
+      {lastDriveSummary && (
+        <motion.div
+          {...cardHoverProps}
+          className="bg-slate-900 border border-slate-700/90 text-white rounded-3xl p-5 shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-4"
+        >
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-2xl bg-blue-600/20 border border-blue-400/40 flex items-center justify-center text-blue-400 shrink-0">
+              <Navigation className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-500/20 text-cyan-300 border border-blue-400/30">
+                  Latest Drive Summary
+                </span>
+                <span className="text-xs text-slate-400">
+                  {new Date(lastDriveSummary.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              </div>
+              <h3 className="font-extrabold text-sm sm:text-base text-white mt-0.5">
+                {lastDriveSummary.distanceKm} km Monitored • {lastDriveSummary.hazardsDetected} Hazards Detected
+              </h3>
             </div>
           </div>
-          <div className="text-2xl sm:text-3xl font-black text-slate-900">{stats.total}</div>
-          <div className="text-[11px] text-slate-500 mt-1 flex items-center gap-1">
-            <Clock className="w-3.5 h-3.5 text-slate-400" />
-            <span className="font-semibold text-blue-600">{stats.today}</span> logged today
+
+          <div className="flex flex-wrap items-center gap-3 shrink-0">
+            {/* Density Metric */}
+            <div className="bg-slate-800/80 px-3.5 py-2 rounded-xl border border-slate-700/80 text-center">
+              <span className="text-[10px] text-slate-400 uppercase font-bold block">Hazard Density</span>
+              <span className="text-sm font-black text-amber-300 font-mono">
+                {lastDriveSummary.hazardDensityScore} <span className="text-[10px] font-normal text-slate-400">/ km</span>
+              </span>
+            </div>
+
+            {/* Quality Score */}
+            <div className="bg-slate-800/80 px-3.5 py-2 rounded-xl border border-slate-700/80 text-center">
+              <span className="text-[10px] text-slate-400 uppercase font-bold block">Road Quality</span>
+              <span className="text-sm font-black text-emerald-400 font-mono">
+                {lastDriveSummary.roadQualityScore}/100 ({lastDriveSummary.roadQualityGrade})
+              </span>
+            </div>
+
+            {onOpenDriveSummary && (
+              <motion.button
+                {...buttonPressProps}
+                onClick={onOpenDriveSummary}
+                className="py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-md shadow-blue-600/30 transition-all flex items-center gap-1.5"
+              >
+                <FileText className="w-3.5 h-3.5" />
+                <span>View Full Summary</span>
+              </motion.button>
+            )}
+          </div>
+        </motion.div>
+      )}
+
+      {/* AI Learning Loop & Continuous Improvement Banner Card */}
+      <motion.div
+        {...cardHoverProps}
+        className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white rounded-3xl p-5 sm:p-6 border border-indigo-900/60 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-5"
+      >
+        <div className="flex items-start sm:items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-indigo-600/30 border border-indigo-400/50 flex items-center justify-center text-indigo-300 shrink-0 shadow-lg">
+            <Brain className="w-6 h-6 animate-pulse" />
+          </div>
+          <div className="space-y-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="font-extrabold text-base text-white">AI Learning Loop Active</h3>
+              <span className="text-[10px] font-mono bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2.5 py-0.5 rounded-full flex items-center gap-1 font-bold">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                Adaptive Model RLHF
+              </span>
+            </div>
+            <p className="text-xs text-slate-300 max-w-xl">
+              Model accuracy continuously improves as drivers confirm or dispute detected hazards. Feedback adjusts model classification weights in real-time.
+            </p>
           </div>
         </div>
 
-        {/* Potholes */}
-        <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-sm border border-slate-200/90 hover:shadow-md transition-shadow">
+        <div className="flex items-center gap-3 shrink-0">
+          <div className="bg-slate-800/80 px-4 py-2.5 rounded-2xl border border-slate-700/80 text-center">
+            <span className="text-[10px] text-slate-400 uppercase font-bold block">Model Accuracy</span>
+            <span className="text-lg font-black text-emerald-400 font-mono">
+              <AnimatedCounter value={aiStats.modelAccuracy} decimals={1} suffix="%" />
+            </span>
+          </div>
+
+          <div className="bg-slate-800/80 px-4 py-2.5 rounded-2xl border border-slate-700/80 text-center">
+            <span className="text-[10px] text-slate-400 uppercase font-bold block">Reinforcements</span>
+            <span className="text-lg font-black text-indigo-300 font-mono">
+              <AnimatedCounter value={aiStats.confirmedCount} suffix=" Verified" />
+            </span>
+          </div>
+
+          <motion.button
+            {...buttonPressProps}
+            onClick={onNavigateToHistory}
+            className="py-2.5 px-4 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-lg shadow-indigo-600/30 transition-all flex items-center gap-1.5 active:scale-95"
+          >
+            <span>Review & Train</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </motion.button>
+        </div>
+      </motion.div>
+
+      {/* Primary KPI Metrics Grid with Stagger & Spring Hover */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
+        {/* Total Road Observations */}
+        <motion.div
+          {...cardHoverProps}
+          className="bg-white rounded-2xl p-4 sm:p-5 shadow-sm border border-slate-200/90 transition-shadow"
+        >
+          <div className="flex items-center justify-between text-slate-400 mb-2">
+            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Total Hazards</span>
+            <div className="p-2 rounded-xl bg-blue-50 text-blue-600 text-lg leading-none">
+              📊
+            </div>
+          </div>
+          <div className="text-2xl sm:text-3xl font-black text-slate-900">
+            <AnimatedCounter value={stats.total} />
+          </div>
+          <div className="text-[11px] text-slate-500 mt-1 flex items-center gap-1 font-mono">
+            <Clock className="w-3 h-3 text-slate-400" />
+            <span>
+              <AnimatedCounter value={stats.today} /> logged today
+            </span>
+          </div>
+        </motion.div>
+
+        {/* Potholes Detected */}
+        <motion.div
+          {...cardHoverProps}
+          className="bg-white rounded-2xl p-4 sm:p-5 shadow-sm border border-slate-200/90 transition-shadow"
+        >
           <div className="flex items-center justify-between text-slate-400 mb-2">
             <span className="text-xs font-semibold uppercase tracking-wider text-rose-600">Potholes</span>
             <div className="p-2 rounded-xl bg-rose-50 text-rose-600 text-lg leading-none">
               🕳️
             </div>
           </div>
-          <div className="text-2xl sm:text-3xl font-black text-slate-900">{stats.potholes}</div>
+          <div className="text-2xl sm:text-3xl font-black text-slate-900">
+            <AnimatedCounter value={stats.potholes} />
+          </div>
           <div className="text-[11px] text-slate-500 mt-1">
             {potholePercent}% of road issues
           </div>
-        </div>
+        </motion.div>
 
         {/* Vehicle Speeds */}
-        <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-sm border border-slate-200/90 hover:shadow-md transition-shadow">
+        <motion.div
+          {...cardHoverProps}
+          className="bg-white rounded-2xl p-4 sm:p-5 shadow-sm border border-slate-200/90 transition-shadow"
+        >
           <div className="flex items-center justify-between text-slate-400 mb-2">
-            <span className="text-xs font-semibold uppercase tracking-wider text-sky-600">Vehicle Speeds</span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-sky-600">Speed Radar</span>
             <div className="p-2 rounded-xl bg-sky-50 text-sky-600 text-lg leading-none">
               🏎️
             </div>
           </div>
-          <div className="text-2xl sm:text-3xl font-black text-slate-900">{stats.speedDetections}</div>
+          <div className="text-2xl sm:text-3xl font-black text-slate-900">
+            <AnimatedCounter value={stats.speedDetections} />
+          </div>
           <div className="text-[11px] text-slate-500 mt-1">
             {speedPercent}% cars/scooters
           </div>
-        </div>
+        </motion.div>
 
         {/* Road Cracks */}
-        <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-sm border border-slate-200/90 hover:shadow-md transition-shadow">
+        <motion.div
+          {...cardHoverProps}
+          className="bg-white rounded-2xl p-4 sm:p-5 shadow-sm border border-slate-200/90 transition-shadow"
+        >
           <div className="flex items-center justify-between text-slate-400 mb-2">
             <span className="text-xs font-semibold uppercase tracking-wider text-amber-600">Road Cracks</span>
             <div className="p-2 rounded-xl bg-amber-50 text-amber-600 text-lg leading-none">
               ⚡
             </div>
           </div>
-          <div className="text-2xl sm:text-3xl font-black text-slate-900">{stats.roadCracks}</div>
+          <div className="text-2xl sm:text-3xl font-black text-slate-900">
+            <AnimatedCounter value={stats.roadCracks} />
+          </div>
           <div className="text-[11px] text-slate-500 mt-1">
             {crackPercent}% surface fractures
           </div>
-        </div>
+        </motion.div>
       </div>
 
       {/* Two Column Section on Desktop / Stack on Mobile: Trend Chart & Breakdown */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        {/* 7-Day Trend Chart (Takes 2 columns on desktop) */}
-        <div className="lg:col-span-2">
+        {/* 7-Day Trend Chart */}
+        <motion.div {...cardHoverProps} className="lg:col-span-2">
           <HazardTrendLineChart detections={recentDetections} />
-        </div>
+        </motion.div>
 
-        {/* Breakdown Progress Bars (Takes 1 column on desktop) */}
-        <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/90 flex flex-col justify-between">
+        {/* Breakdown Progress Bars with Smooth Width Transitions */}
+        <motion.div
+          {...cardHoverProps}
+          className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200/90 flex flex-col justify-between"
+        >
           <div>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
@@ -247,9 +379,11 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                   <span className="font-mono text-slate-500">{stats.potholes} ({potholePercent}%)</span>
                 </div>
                 <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
-                  <div
-                    className="bg-rose-500 h-full rounded-full transition-all duration-500"
-                    style={{ width: `${Math.max(stats.potholes > 0 ? 5 : 0, potholePercent)}%` }}
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${Math.max(stats.potholes > 0 ? 5 : 0, potholePercent)}%` }}
+                    transition={progressBarTransition}
+                    className="bg-rose-500 h-full rounded-full"
                   />
                 </div>
               </div>
@@ -263,9 +397,11 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                   <span className="font-mono text-slate-500">{stats.speedDetections} ({speedPercent}%)</span>
                 </div>
                 <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
-                  <div
-                    className="bg-sky-500 h-full rounded-full transition-all duration-500"
-                    style={{ width: `${Math.max(stats.speedDetections > 0 ? 5 : 0, speedPercent)}%` }}
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${Math.max(stats.speedDetections > 0 ? 5 : 0, speedPercent)}%` }}
+                    transition={progressBarTransition}
+                    className="bg-sky-500 h-full rounded-full"
                   />
                 </div>
               </div>
@@ -279,9 +415,11 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                   <span className="font-mono text-slate-500">{stats.roadCracks} ({crackPercent}%)</span>
                 </div>
                 <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
-                  <div
-                    className="bg-amber-500 h-full rounded-full transition-all duration-500"
-                    style={{ width: `${Math.max(stats.roadCracks > 0 ? 5 : 0, crackPercent)}%` }}
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${Math.max(stats.roadCracks > 0 ? 5 : 0, crackPercent)}%` }}
+                    transition={progressBarTransition}
+                    className="bg-amber-500 h-full rounded-full"
                   />
                 </div>
               </div>
@@ -295,9 +433,11 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                   <span className="font-mono text-slate-500">{stats.brokenSigns} ({signPercent}%)</span>
                 </div>
                 <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
-                  <div
-                    className="bg-purple-500 h-full rounded-full transition-all duration-500"
-                    style={{ width: `${Math.max(stats.brokenSigns > 0 ? 5 : 0, signPercent)}%` }}
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${Math.max(stats.brokenSigns > 0 ? 5 : 0, signPercent)}%` }}
+                    transition={progressBarTransition}
+                    className="bg-purple-500 h-full rounded-full"
                   />
                 </div>
               </div>
@@ -307,13 +447,13 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           <div className="pt-4 mt-4 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
             <span>Real-time safety coverage</span>
             <button
-              onClick={() => onNavigateToHistory()}
+              onClick={onNavigateToHistory}
               className="text-blue-600 font-semibold hover:underline"
             >
               Inspect all
             </button>
           </div>
-        </div>
+        </motion.div>
       </div>
 
       {/* Recent Detections Grid */}
@@ -371,7 +511,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
               return (
                 <div
                   key={item.id}
-                  onClick={() => onNavigateToMap(item.id)}
+                  onClick={onNavigateToHistory}
                   className="bg-white rounded-2xl p-3.5 shadow-sm border border-slate-200/90 hover:border-blue-400 hover:shadow-md transition-all cursor-pointer flex items-center justify-between gap-3 group"
                 >
                   <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -399,7 +539,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                       <p className="text-xs text-slate-500 truncate mt-0.5">{item.description}</p>
                       <div className="flex items-center gap-2 text-[10px] text-slate-400 mt-1">
                         <span className="font-mono flex items-center gap-1 truncate">
-                          <MapPin className="w-3 h-3 text-rose-500 shrink-0" />
+                          <MapPin className="w-3 familiar text-rose-500 shrink-0" />
                           {item.locationName || `${item.latitude?.toFixed(3)}°, ${item.longitude?.toFixed(3)}°`}
                         </span>
                         <span>•</span>
@@ -430,9 +570,9 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
       {/* Website Feature Showcase Section */}
       <WebsiteFeatureSection
         onStartMonitoring={onStartMonitoring}
-        onNavigateToMap={() => onNavigateToMap()}
+        onNavigateToHistory={onNavigateToHistory}
         onOpenDemo={onOpenDemo}
       />
-    </div>
+    </motion.div>
   );
 };

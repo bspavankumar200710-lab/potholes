@@ -20,8 +20,8 @@ class LocationService {
   // Demo simulation mode state (centered in Bengaluru, Karnataka, India)
   private isSimulating: boolean = false;
   private simInterval: any = null;
-  private simLat = 12.9716;
-  private simLng = 77.5946;
+  private simLat = 12.9693;
+  private simLng = 77.5195;
   private simStep = 0;
 
   constructor() {

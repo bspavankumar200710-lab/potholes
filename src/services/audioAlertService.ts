@@ -187,7 +187,7 @@ class AudioAlertService {
    * a high-severity risk, ensuring drivers don't need to look at the screen."
    */
   public announceDetection(
-    type: 'pothole' | 'road_crack' | 'broken_sign' | 'vehicle_speed',
+    type: 'pothole' | 'road_crack' | 'broken_sign' | 'other_hazard' | 'vehicle_speed',
     severity: 'low' | 'medium' | 'high',
     locationHint?: string
   ) {
@@ -198,6 +198,7 @@ class AudioAlertService {
     let hazardName = 'Pothole';
     if (type === 'road_crack') hazardName = 'Road crack';
     else if (type === 'broken_sign') hazardName = 'Damaged road sign';
+    else if (type === 'other_hazard') hazardName = 'Road obstruction';
     else if (type === 'vehicle_speed') hazardName = 'Moving vehicle';
 
     // 3. Spoken Announcement formulation

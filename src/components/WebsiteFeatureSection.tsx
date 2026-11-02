@@ -3,13 +3,13 @@ import { Camera, MapPin, Gauge, Shield, Cpu, Cloud, Smartphone, ChevronRight } f
 
 interface WebsiteFeatureSectionProps {
   onStartMonitoring: () => void;
-  onNavigateToMap: () => void;
+  onNavigateToHistory: () => void;
   onOpenDemo: () => void;
 }
 
 export const WebsiteFeatureSection: React.FC<WebsiteFeatureSectionProps> = ({
   onStartMonitoring,
-  onNavigateToMap,
+  onNavigateToHistory,
   onOpenDemo,
 }) => {
   return (
@@ -29,7 +29,7 @@ export const WebsiteFeatureSection: React.FC<WebsiteFeatureSectionProps> = ({
         </p>
       </div>
 
-      {/* 3 Core Capability Cards (Horizontal swipe on mobile, 3-col grid on tablet/desktop) */}
+      {/* 3 Core Capability Cards */}
       <div className="flex sm:grid sm:grid-cols-3 gap-3.5 sm:gap-5 overflow-x-auto pb-2 -mx-1 px-1 sm:mx-0 sm:px-0 scrollbar-none">
         {/* Card 1: Pothole & Cavity Edge Vision */}
         <div className="min-w-[260px] sm:min-w-0 flex-1 bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/90 shadow-sm hover:border-slate-300 transition-all flex flex-col justify-between">
@@ -91,21 +91,21 @@ export const WebsiteFeatureSection: React.FC<WebsiteFeatureSectionProps> = ({
           </button>
         </div>
 
-        {/* Card 3: Geotagged GIS Map & Cloud Persistence */}
+        {/* Card 3: Geotagged GIS & Cloud Persistence */}
         <div className="min-w-[260px] sm:min-w-0 flex-1 bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/90 shadow-sm hover:border-slate-300 transition-all flex flex-col justify-between">
           <div>
             <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-lg sm:text-xl mb-2.5 sm:mb-3 border border-indigo-100">
-              🗺️
+              🛡️
             </div>
             <h4 className="font-bold text-slate-900 text-sm sm:text-base mb-1">
               Cloud Geospatial Database
             </h4>
             <p className="text-xs text-slate-600 leading-relaxed mb-2.5">
-              Every detection is stamped with precise GPS coordinates, reverse geocoded, and synchronized with Google Cloud Firestore database.
+              Every detection is stamped with precise GPS coordinates, reverse geocoded, and synchronized with Cloud Firestore database.
             </p>
             <div className="space-y-1 text-[11px] text-slate-500">
               <div className="flex items-center gap-1.5">
-                <span className="text-emerald-500">✓</span> Google Account profile synchronization
+                <span className="text-emerald-500">✓</span> Cloud Account profile synchronization
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="text-emerald-500">✓</span> Offline resilience with IndexedDB
@@ -113,10 +113,10 @@ export const WebsiteFeatureSection: React.FC<WebsiteFeatureSectionProps> = ({
             </div>
           </div>
           <button
-            onClick={onNavigateToMap}
+            onClick={onNavigateToHistory}
             className="mt-3 pt-2.5 border-t border-slate-100 text-xs font-bold text-indigo-600 hover:text-indigo-700 flex items-center justify-between group"
           >
-            <span>Explore Spatial Map</span>
+            <span>View All Records in History</span>
             <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
           </button>
         </div>
@@ -138,12 +138,12 @@ export const WebsiteFeatureSection: React.FC<WebsiteFeatureSectionProps> = ({
           <div className="px-1 sm:px-2">
             <span className="text-[11px] text-slate-400 block font-medium">Data Sync</span>
             <span className="text-base sm:text-xl font-mono font-bold text-blue-400 mt-0.5 block">Firestore</span>
-            <span className="text-[9px] sm:text-[10px] text-slate-500">Multi-device live</span>
+            <span className="text-[9px] sm:text-[10px] text-slate-500">Real-time cache</span>
           </div>
           <div className="px-1 sm:px-2">
-            <span className="text-[11px] text-slate-400 block font-medium">GPS Accuracy</span>
-            <span className="text-base sm:text-xl font-mono font-bold text-amber-400 mt-0.5 block">&plusmn; 2.5 m</span>
-            <span className="text-[9px] sm:text-[10px] text-slate-500">Geolocation API</span>
+            <span className="text-[11px] text-slate-400 block font-medium">AI Vision Model</span>
+            <span className="text-base sm:text-xl font-mono font-bold text-amber-400 mt-0.5 block">Gemini 3.8</span>
+            <span className="text-[9px] sm:text-[10px] text-slate-500">Flash Multimodal</span>
           </div>
         </div>
       </div>

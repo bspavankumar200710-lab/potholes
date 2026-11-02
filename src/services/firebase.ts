@@ -1,5 +1,16 @@
 import { initializeApp, getApps } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, User } from 'firebase/auth';
+import {
+  getAuth,
+  GoogleAuthProvider,
+  signInWithPopup,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  updateProfile,
+  signInAnonymously,
+  signOut,
+  onAuthStateChanged,
+  User,
+} from 'firebase/auth';
 import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 
@@ -12,14 +23,13 @@ export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: 'select_account' });
 
-// Connection test as prescribed by Firebase integration guidelines
+// Connection test with silent offline tolerance
 export async function testFirestoreConnection() {
   try {
     await getDocFromServer(doc(db, 'test', 'connection'));
-  } catch (error) {
-    if (error instanceof Error && error.message.includes('the client is offline')) {
-      console.warn('Firestore offline notice. Offline cache is active.');
-    }
+  } catch (error: any) {
+    // Expected when offline or when initial connection is negotiating
+    console.debug('Firestore connectivity status:', error?.code || error?.message || 'offline-ready');
   }
 }
 
@@ -28,4 +38,13 @@ if (typeof window !== 'undefined') {
   testFirestoreConnection();
 }
 
-export { signInWithPopup, signOut, onAuthStateChanged, type User };
+export {
+  signInWithPopup,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  updateProfile,
+  signInAnonymously,
+  signOut,
+  onAuthStateChanged,
+  type User,
+};
